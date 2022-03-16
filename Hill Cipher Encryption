@@ -1,0 +1,229 @@
+/*------------------------------------------------------------------------------------------------------------------------
+ *  To Execute: java Hw01 hillcipherkey.txt plaintext.txt
+ *             where the files in the command line are in the current directory.
+ *             The key text contains a single digit on the first line defining the size of the key
+ *             while the remaining lines define the key, for example:
+ *             3
+ *             1 2 3
+ *             4 5 6
+ *             7 8 9
+ *             The plain text file contains the plain text in mixed case with speaces & punctuation.
+ ------------------------------------------------------------------------------------------------------------------------*/
+
+import java.io.File;
+import java.util.Scanner;
+
+public class hw1 
+{
+	public static void main(String[] args) throws Exception
+	{
+		//Opening Key and Plaintext files and reading them into a char array
+		
+		File keyFile = new File(args[0]);
+		Scanner kScan = new Scanner(keyFile);
+		
+		int rowCount = 0;
+		int matrixSize = kScan.nextInt();
+		
+		System.out.println("\n\nKey matrix: \n");
+		
+		int [][] keyMatrix = new int [matrixSize][matrixSize];
+		
+		for(int row = 0; row < matrixSize; row++)
+		{
+			for(int column = 0; column < matrixSize; column++)
+			{
+				keyMatrix[row][column] = kScan.nextInt();
+				System.out.print(keyMatrix[row][column] + "  ");
+				rowCount++;
+				if(rowCount == matrixSize)
+				{
+					System.out.println();
+					rowCount = 0;
+				}
+			}
+		}
+//-----------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------
+		File plaintextFile = new File(args[1]);
+		int length = (int) plaintextFile.length();
+	
+		Scanner pScan = new Scanner(plaintextFile);
+		
+		char [] textArr = new char[length];
+		int i = 0, j = 0, c;
+		String text;
+		
+		System.out.println("\n\nPlaintext: \n");
+		
+		while(pScan.hasNext())
+		{
+			text = pScan.nextLine();
+			j = 0;
+			c = (i + text.length());
+				
+			for(; i < c; i++)
+			{
+				textArr[i] = text.charAt(j);
+				j++;
+			}	
+		} 
+
+		convertToPlaintext(textArr, length, matrixSize, keyMatrix);
+	}
+//-----------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------
+	
+	//Eliminating the whitespace and symbols from the text and storing into a new char array
+	public static void convertToPlaintext(char [] array, int length, int size, int[][] keyMatrix)
+	{
+		int count = 0, j = 0, x;
+		char [] temp = new char [length];
+		
+		for(int i = 0; i < length; i++) 
+		{
+			if((Character.isLetter(array[i]) == false) || (Character.isWhitespace(array[i]) == true))
+				continue;
+			else 
+			{
+				temp[j] = Character.toLowerCase(array[i]);
+				count++;
+				j++;
+			}
+		}
+		
+		x = count % size; 
+		if(x != 0)
+			x = size - x;    
+		
+		int finalSize = count + x; 
+	
+		char [] finalArr = new char [finalSize];
+		for(int i = 0; i < count; i++)
+			finalArr[i] = temp[i];
+
+			padding(finalArr, count, finalSize, x, size, keyMatrix);
+	}
+	
+//-----------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------
+	
+	//Padding 'x' at the end of the plaintext if required and then printing the plaintext
+	public static void padding(char [] array, int count, int finalSize, int x, int size, int [][] keyMatrix)
+	{
+		int count2 = 0;
+		int index = count;
+		count = count + x;
+		
+		if(x != 0)
+		{
+			for(int i = index; i < finalSize; i++)
+
+			{
+				array[i] = 'x';
+				x--;
+			}
+		}
+		
+		for(int i = 0; i < finalSize; i++)
+		{
+			System.out.print(array[i]);
+			count2++;
+			if(count2 == 80)
+			{
+				System.out.println();
+				count2 = 0;
+			}
+		}
+		getMessageVector(array, size, keyMatrix, count);
+	}
+//-----------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------
+	
+	//Generating the message vector from the plaintext 
+	public static void getMessageVector(char [] message, int size, int [][] keyMatrix, int count)
+	{
+		int i = 0, j = message.length;
+		int [][] messageVector = new int [j][1];
+		System.out.println();	
+		for(i = 0; i < j; i++)
+		{
+			message[i] = Character.toUpperCase(message[i]);
+			messageVector[i][0] = message[i] % 65;
+		}
+		
+		encrypt(messageVector, size, keyMatrix, count);
+	}
+//-----------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------
+	
+	//Encrypting the plaintext using the key matrix and message vectors 
+	public static void encrypt(int [][] messageVector, int size, int [][] keyMatrix, int count)
+	{
+		int i, j, product;
+		int blockCount = 0, k = 0, sum = 0, index = 0, matrixCount = 0;
+		int a = count/size;
+		int [] cipherMatrix = new int[count];
+		
+		while(matrixCount < a)
+		{
+			if(matrixCount > 0)
+				k++;
+				
+			for(i = 0; i < size; i++)
+			{
+				if(blockCount == 0) 
+				{
+					k = 0;
+					blockCount++;
+				}
+				else if(i > 0)
+					k = k - (size - 1); 	
+				
+				sum = 0;
+				
+				for(j = 0; j < size; j++)
+				{
+					product = keyMatrix[i][j] * messageVector[k][0];
+					if(j < size - 1)
+						k++;
+					sum += product;
+				}
+				
+				sum %= 26;
+				cipherMatrix[index] = sum;
+				index++;
+			}
+
+			matrixCount++;
+		}
+		
+		cipherText(cipherMatrix, count);
+	}	
+//-----------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------
+	
+	//Converting each number to letters and printing the ciphertext
+	public static void cipherText(int [] cipherMatrix, int count)
+	{
+		int c = 0;
+		
+		System.out.println("\n\nCiphertext: \n");
+		
+		for(int index = 0; index < count; index++)
+		{
+			System.out.print((char)(cipherMatrix[index] + 97));
+			c++;
+			
+			if(c == 80)
+			{
+				System.out.println();
+				c = 0;
+			}
+		}
+		
+		System.out.println();
+	}
+}
+
+/* END OF PROGRAM */
